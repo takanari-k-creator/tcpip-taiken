@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>パケットを届けよう！ TCP/IP 体験シミュレータ</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#1f2937;--sub:#6b7280;--line:#d1d5db;--blue:#2563eb;--green:#059669;--red:#dc2626;--orange:#d97706;--purple:#7c3aed;--navy:#1e3a8a}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Meiryo",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+header{background:var(--navy);color:#fff;padding:14px 20px 6px}
+header h1{margin:0;font-size:1.35rem}
+header p{margin:2px 0 0;font-size:.85rem;opacity:.85}
+nav{display:flex;gap:4px;flex-wrap:wrap;padding:8px 16px 0;background:var(--navy)}
+nav button{border:0;background:#3b5bb5;color:#fff;padding:8px 14px;border-radius:10px 10px 0 0;cursor:pointer;font-size:.95rem;font-family:inherit}
+nav button.active{background:var(--bg);color:var(--navy);font-weight:bold}
+main{max-width:1120px;margin:0 auto;padding:16px}
+section.tab{display:none}section.tab.active{display:block}
+.card{background:var(--card);border-radius:12px;padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+h2{font-size:1.15rem;margin:0 0 6px}h3{font-size:1rem;margin:0 0 6px}
+.row{display:flex;gap:12px 18px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:780px){.grid2{grid-template-columns:1fr!important}}
+label{font-size:.9rem}
+input[type=text],select{padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:1rem;font-family:inherit}
+input[type=text]{width:100%}
+.btn{border:0;background:var(--blue);color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:.95rem;font-family:inherit}
+.btn.sub{background:#e5e7eb;color:var(--ink)}
+.btn.sm{padding:5px 12px;font-size:.85rem}
+.btn:disabled{opacity:.4;cursor:default}
+svg{width:100%;height:auto;display:block;user-select:none}
+.pk{display:inline-flex;flex-direction:column;border:2px solid var(--blue);border-radius:6px;margin:3px;font-size:.72rem;min-width:70px;background:#fff;vertical-align:top}
+.pk .h{background:#dbeafe;padding:0 5px;line-height:1.35}
+.pk .d{padding:2px 6px;font-size:1rem;font-weight:bold;white-space:pre;text-align:center}
+.pk.ok{border-color:var(--green)}.pk.ok .h{background:#d1fae5}
+.pk.empty{border-style:dashed;border-color:#9ca3af}.pk.empty .h{background:#f3f4f6}.pk.empty .d{color:#9ca3af}
+.log{height:160px;overflow:auto;font-size:.78rem;background:#111827;color:#d1fae5;padding:8px 10px;border-radius:8px;font-family:Consolas,monospace}
+.log .e{color:#fca5a5}.log .a{color:#93c5fd}.log .w{color:#fde68a}
+.q{background:#fff7ed;border-left:4px solid var(--orange);padding:8px 12px;border-radius:6px;font-size:.92rem}
+.q ol{margin:4px 0 0;padding-left:1.4em}
+.q.blue{background:#eff6ff;border-left-color:var(--blue)}
+.result{font-size:1.25rem;font-weight:bold;padding:8px 10px;border-radius:8px;background:#f3f4f6;min-height:2.3em;word-break:break-all}
+.result.good{background:#d1fae5}.result.bad{background:#fee2e2}
+.stat{display:inline-block;background:#eef2ff;border-radius:6px;padding:2px 10px;margin:2px;font-size:.88rem}
+.note{font-size:.85rem;color:var(--sub)}
+.hdr{font-family:Consolas,"Noto Sans JP",monospace;background:#f9fafb;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:.92rem}
+table.rt{border-collapse:collapse;width:100%;font-size:.88rem}
+table.rt th,table.rt td{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+table.rt th{background:#eef2ff}
+table.rt tr.hit td{background:#fef3c7;font-weight:bold}
+.click{cursor:pointer}
+.click:hover{filter:brightness(1.25)}
+.strip{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:8px 0;min-height:64px}
+.strip div{padding:8px 10px;color:#fff;font-size:.85rem;display:flex;flex-direction:column;justify-content:center;animation:pop .35s}
+.strip .data{background:#374151}
+.strip .trl{background:#92400e}
+.strip small{opacity:.9;font-size:.72rem}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes flash{0%,60%{background:#fde68a}100%{background:transparent}}
+/* layer table */
+table.ly{border-collapse:collapse;width:100%;font-size:.92rem}
+table.ly th{background:#eef2ff;border:1px solid var(--line);padding:6px 8px;text-align:left}
+table.ly td{border:1px solid var(--line);padding:8px;vertical-align:middle;transition:background .3s}
+table.ly td.nm{border-left-width:7px;font-weight:bold;white-space:nowrap}
+table.ly tr.cur td{background:#fef3c7}
+table.ly tr.off td.val{color:#9ca3af}
+table.ly tr.flash td{animation:flash 1.6s}
+details{margin-top:6px}
+summary{cursor:pointer;font-weight:bold;font-size:.92rem}
+
+.flow{position:relative;height:368px;min-width:620px;background:linear-gradient(#f9fafb,#f3f4f6);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.flow .side{position:absolute;top:4px;font-weight:bold;font-size:.82rem;color:var(--navy);width:32%;text-align:center}
+.flow .ly{position:absolute;width:32%;height:68px;border:2px solid;border-radius:8px;background:#fff;font-size:.78rem;display:flex;flex-direction:column;justify-content:flex-start;padding-top:2px;box-sizing:border-box;align-items:center;transition:box-shadow .3s,background .3s;opacity:.85}
+.flow .ly.hot{box-shadow:0 0 0 4px #fde68a;background:#fffbeb;opacity:1}
+.flow .ly.pick{cursor:pointer}.flow .ly.pick:hover{border-style:dashed;box-shadow:0 0 0 3px #bfdbfe}.flow .ly small{color:#6b7280;font-size:.68rem}
+.flow .wire{position:absolute;left:34%;width:32%;height:6px;background:repeating-linear-gradient(90deg,#9ca3af 0 10px,#d1d5db 10px 16px);border-radius:3px}
+.flow .wirelb{position:absolute;left:34%;width:32%;text-align:center;font-size:.7rem;color:#6b7280}
+.flow .pkt{position:absolute;display:flex;transform:translate(-50%,-50%);transition:left 1.1s ease-in-out,top .8s ease-in-out;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+.flow .pkt div{color:#fff;font-size:.66rem;font-weight:bold;min-width:42px;height:42px;padding:0 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box}
+.flow .pkt div.new{animation:pop .5s,glowb 1.2s}
+.flow .pkt .data{background:#374151}.flow .pkt .trl{background:#92400e}
+@keyframes glowb{0%,60%{outline:3px solid #fde68a}100%{outline:3px solid transparent}}
+.flow .ghost{position:absolute;color:#fff;font-size:.66rem;font-weight:bold;padding:4px 8px;border-radius:4px;transform:translate(-50%,-50%);animation:fly 1.3s forwards;z-index:6}
+@keyframes fly{to{transform:translate(-50%,-190%);opacity:0}}
+.flow .cap{position:absolute;font-size:.72rem;color:#b45309;font-weight:bold;width:32%;text-align:center}
+
+table.hd{border-collapse:separate;border-spacing:0;font-size:.95rem;max-width:760px;width:100%}
+table.hd td{padding:7px 10px;border:1px solid #6b7280;background:#fff;transition:background .3s}
+table.hd td.k{background:#f3f4f6;font-weight:bold;white-space:nowrap;width:150px}
+table.hd td.br{border:0;border-left:4px solid;border-radius:0 12px 12px 0;background:transparent;font-weight:bold;font-size:.85rem;padding:4px 10px;line-height:1.35;width:210px}
+table.hd td.br small{font-weight:normal;color:#374151}
+table.hd tr.cur td:not(.br){background:#fef3c7}
+table.hd .circ{display:inline-block;border:2px solid #dc2626;border-radius:14px;padding:0 8px;margin-right:4px}
+
+.cs svg{width:100%;height:auto;display:block;background:#f9fafb;border:1px solid var(--line);border-radius:10px}
+table.cst{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:8px}
+table.cst th{background:#eef2ff;border:1px solid var(--line);padding:4px 8px;text-align:left}
+table.cst td{border:1px solid var(--line);padding:4px 8px;vertical-align:middle}
+.bar{height:12px;background:#e5e7eb;border-radius:6px;overflow:hidden;min-width:110px}.bar i{display:block;height:100%;transition:width .5s}
+.stl{margin-top:6px;font-size:.92rem;font-weight:bold;min-height:1.5em}
+.kc{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+footer{text-align:center;font-size:.8rem;color:var(--sub);padding:10px 0 24px}
+
+.qz{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid #e5e7eb}
+.qz .t{flex:1 1 320px;font-size:.93rem}
+.qz .r{flex:1 1 100%;font-size:.82rem}.qz .r:empty{display:none}
+.qz.ok .r{color:#047857}.qz.ng .r{color:#b91c1c}
+.qz button.sel{outline:3px solid #fde68a}
+.sp{display:inline-block;border:2px solid #2563eb;border-radius:6px;padding:1px 8px;margin:2px;background:#eff6ff;font-weight:bold}
+.strip .glow{outline:4px solid #fde68a;outline-offset:-2px}
+#asPk{transition:transform .7s ease}
+.ans{display:none}#wsTbl.show .ans{display:table-cell}
+</style>
+</head>
+<body>
+<header>
+  <h1>📦 パケットを届けよう！ TCP/IP 体験シミュレータ</h1>
+  <p>情報Ⅰ　情報通信ネットワーク ― プロトコルの役割とIPとパケット（回線交換とパケット交換・4階層・TCPのパケット分割・IPアドレス）</p>
+</header>
+<nav id="tabs">
+  <button data-t="t0" class="active">① 回線交換とパケット交換</button>
+  <button data-t="t1">② プロトコルと4階層</button>
+  <button data-t="t2">③ TCPの体験：分割して送ろう</button>
+</nav>
+<main>
+
+<!-- ============ TAB 0 ============ -->
+<section class="tab active" id="t0">
+  <div class="card">
+    <h2>① 回線交換方式とパケット交換方式（ワークシート 1）</h2>
+    <p class="note" style="margin:0 0 8px">通信のしかたには、大きく2通りあります。昔の電話の網は<b>回線交換方式</b>、いまのインターネットは<b>パケット交換方式</b>です。同じ条件で、4台が一斉にデータを送るとどうなるか、くらべてみよう。</p>
+    <div class="grid2">
+      <div class="q blue"><b>回線交換方式</b><br>通信相手とのあいだに、専用の回線をつなぎ、通信が終わるまで<b>回線を占有</b>する。使っている間は、ほかの人はその回線を使えない（話し中）。</div>
+      <div class="q" style="background:#ecfdf5;border-left-color:#059669"><b>パケット交換方式</b><br>データを小さな<b>パケット</b>に分けて、共用の回線に順番に流す。回線を占有しないので、<b>たくさんの端末が、同時に</b>通信できる。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button class="btn" id="csGo">▶ 4台が同時に送る</button>
+      <button class="btn sub" id="csReset">リセット</button>
+      <label><input type="checkbox" id="csSil"> 通信の途中に、無言の時間（2秒）がある</label>
+      <label>スピード
+        <select id="csSpd"><option value="1">ふつう</option><option value="2" selected>はやい</option><option value="0.5">ゆっくり</option></select></label>
+    </div>
+    <p class="note" style="margin:6px 0 0">端末A〜Dが、それぞれの宛先に同時にデータを送ろうとします。2つの交換機のあいだの回線は<b>1本だけ</b>で、1秒に流せるのは<b>1つ分</b>のデータです。2つの方式で、回線の太さ（速さ）は同じです。データの量は、A＝8、B＝6、C＝4、D＝2です。</p>
+  </div>
+
+  <div class="grid2">
+    <div class="card cs"><h3 style="color:#1d4ed8">回線交換方式</h3><div id="cvC"></div><div class="stl" id="stC">「送る」ボタンを押そう</div><table class="cst" id="tbC"></table></div>
+    <div class="card cs"><h3 style="color:#059669">パケット交換方式</h3><div id="cvP"></div><div class="stl" id="stP">「送る」ボタンを押そう</div><table class="cst" id="tbP"></table></div>
+  </div>
+
+  <div class="card" id="cmpCard" style="display:none">
+    <h3>くらべてみよう（完了までにかかった時間）</h3>
+    <table class="cst" id="cmpTb"></table>
+    <div class="hdr" id="cmpTx" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card q">
+    <b>考えよう</b>
+    <ol>
+      <li><b>回線交換方式とパケット交換方式を比較して、どちらの方が早いか、そしてその理由はなぜか？</b>（シミュレータの結果から確かめて、ワークシートの1に書こう）</li>
+      <li class="note" style="list-style:none;margin-left:-18px">ヒント：「平均」と、端末ごとの時間の両方を見よう。「無言の時間」にチェックを入れて、もう一度くらべてみよう。</li>
+      </ol>
+  </div>
+</section>
+
+<!-- ============ TAB 1 ============ -->
+<section class="tab" id="t1">
+  <div class="card">
+    <h2>② プロトコルと4階層（ワークシート 2）</h2>
+    <p class="note" style="margin:0 0 8px">通信の決まり事（<b>プロトコル</b>）は、<b>アプリケーション層・トランスポート層・インターネット層・ネットワークインタフェース層</b>の4つの階層に分かれています。それぞれの決まり事は、<b>ヘッダ</b>に書き込まれた数値や記号の情報として、コンピュータが読み取れる形になっています。今日の授業で体験するのは、第3層の<b>TCP</b>（パケットに分割して送る）と、第2層の<b>IP</b>（宛先のIPアドレスで届ける）です。</p>
+    <div class="grid2">
+      <div class="q blue">
+        <b>電話のたとえ</b><br>
+        電話で会話をするにも、お互いにそろえる「決まり」があります。<br>
+        <b>言語</b>（日本語など）／<b>宛先</b>（電話番号）／<b>媒体</b>（スマートフォンなど）。<br>
+        通信に関する取り決めが<b>プロトコル</b>です。TCP/IPは、この決まりごとを種類ごとに<b>階層</b>に分けて管理します。
+      </div>
+      <div class="q blue">
+        <b>宅配便のたとえ</b><br>
+        荷物には伝票を貼ります。伝票には<b>何を</b>（品名）、<b>どれくらい</b>（個口数・重さ）、<b>どこからどこへ</b>（住所）、<b>どのような方法で</b>（輸送方法）が書かれています。<br>
+        TCP/IPでは、この伝票にあたる<b>ヘッダ</b>が、データに階層ごとに付きます。
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>ワークシート2①：4つの層を、宅配便の伝票の項目と結びつけよう</h3>
+    <p class="note" style="margin:0 0 8px">「なにを・どのくらい・どこからどこへ・どのような方法で」は、それぞれどの層の決まり事だろう？ まず自分で考えてから、「答えを見る」を押そう。</p>
+    <table class="hd" id="wsTbl"><tr><th>宅配便の伝票の項目</th><th>プロトコルの層</th><th class="ans">宅配便に例えると（答え）</th></tr>
+      <tr><td>なにを</td><td>アプリケーション層</td><td class="ans">荷物の中身（品名）</td></tr>
+      <tr><td>どのくらい</td><td>トランスポート層</td><td class="ans">荷物の数・大きさ（個口数・重さ）</td></tr>
+      <tr><td>どこからどこへ</td><td>インターネット層</td><td class="ans">届け先と差出人の住所</td></tr>
+      <tr><td>どのような方法で</td><td>ネットワークインタフェース層</td><td class="ans">運び方（トラック・飛行機・船など）</td></tr></table>
+    <button class="btn sub sm" id="wsBtn" style="margin-top:6px">答えを見る</button>
+  </div>
+
+  <div class="card">
+    <h3>パケットのヘッダには、どんな情報が入っている？（教科書の図）</h3>
+    <p class="note" style="margin:0 0 8px">1つのパケットには、決まり事を表す情報が、層ごとに書かれています。右側の層の名前と、宅配便の伝票の項目（　）を対応させて見よう。下のシミュレータを動かすと、いま処理している層の行が黄色になります。</p>
+    <table class="hd" id="hdTbl"></table>
+  </div>
+
+  <div class="card">
+    <h3>層ごとに、プロトコルを選んでみよう</h3>
+    <div class="row" style="margin-bottom:8px">
+      <label style="color:#6b46c1;font-weight:bold">アプリケーション層（第4層）
+        <select id="selApp"><option value="HTTP">HTTP（Webページ）</option><option value="HTTPS">HTTPS（暗号化したWebページ）</option><option value="SMTP">SMTP（メール送信）</option></select></label>
+      <label style="color:#1f5fbf;font-weight:bold">トランスポート層（第3層）
+        <select id="selTp"><option value="TCP">TCP</option><option value="UDP">UDP</option></select></label>
+      <label style="color:#a85505;font-weight:bold">ネットワークインタフェース層（第1層）
+        <select id="selMed"><option value="wired">有線LAN（イーサネット）</option><option value="wifi">無線LAN（IEEE 802.11）</option></select></label>
+      <span class="note" style="align-self:end;color:#067a55;font-weight:bold">インターネット層（第2層）は、IPで固定</span>
+    </div>
+    <p class="note" style="margin:6px 0 0">場面：Webサーバ（203.0.113.122）が、クライアント（192.168.12.1）へデータの1番目のパケット（5バイト）を送る。層の名前の下で選ぶか、下のアニメーションの「▼」が付いた層を押すと、プロトコルを切りかえられる。切りかえると、最初から自動で流れる。どの層のヘッダだけが変わるか確かめよう。</p>
+  </div>
+
+  <div class="card">
+    <h3>データの流れ（アニメーション）</h3>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn" id="enAuto">▶ 最初から流す</button>
+      <span class="note" id="enPhase"></span>
+    </div>
+    <div class="row" style="margin-bottom:8px">
+      <span class="note">送信側では上から下へヘッダが付き、受信側では下から上へヘッダが外れます。</span>
+    </div>
+    <div style="overflow-x:auto"><div class="flow" id="flow"></div></div>
+  </div>
+
+  <div class="card">
+    <table class="ly">
+      <thead><tr><th>層</th><th>伝票でいうと</th><th>この層のヘッダに書かれていること</th></tr></thead>
+      <tbody id="enBody"></tbody>
+    </table>
+    <div id="enChg" style="margin-top:8px;font-weight:bold;color:#b45309;min-height:1.6em"></div>
+  </div>
+
+  <div class="card">
+    <h3>いま流れているデータ</h3>
+    <div class="strip" id="enStrip"></div>
+    <div class="hdr" id="enText" style="min-height:70px"></div>
+  </div>
+
+  <div class="card q">
+    <b>考えよう</b>
+    <ol>
+      <li><b>プロトコル4階層のモデルは、宅配便に例えると何になる？</b>（上の表で確かめて、ワークシートの2①に書こう）</li>
+      <li><b>ネットワークインタフェース層を有線と無線に切り替えて試そう。</b>このように層を分けてプロトコルを決めるメリットは何か、考えてみよう。（ワークシートの2②）</li>
+      </ol>
+  </div>
+</section>
+
+<!-- ============ TAB 2 ============ -->
+<section class="tab" id="t2">
+  <div class="card">
+    <h2>③ TCPの体験（ワークシート 3）</h2>
+    <p class="note" style="margin-top:0">インターネットでは、データを<b>パケット</b>という小さな単位に分けて送っています。分けて送るやり方には、<b>約束ごと（プロトコル）</b>が必要で、第3層の<b>TCP</b>がその役目をしています。約束がないときと、ある（TCP）ときで、結果がどう変わるか比べよう。<br>パケットのヘッダには、番号（第3層・TCP）と、<b>宛先と送信元のIPアドレス</b>（第2層・IP）が書かれています。このあとのトランプ実習では、<b>宛先のIPアドレス</b>に着目します。</p>
+    <div class="row" style="margin-bottom:8px">
+      <div style="flex:1 1 320px"><label>送るメッセージ<input type="text" id="msg" value="こんにちは、ネットワークの世界へようこそ！"></label></div>
+      <label>1パケットの文字数
+        <select id="psize"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>6</option></select></label>
+      <label>約束（プロトコル）
+        <select id="mode">
+          <option value="none">約束なし（ただ送るだけ）</option>
+          <option value="tcp" selected>TCPの約束あり（番号・ACK（アック）・再送）</option>
+        </select></label>
+    </div>
+    <div style="margin:2px 0 8px"><span class="note">パケットに分けると：</span><span id="splitView"></span></div>
+    <div class="row">
+      <label>パケットが失われる確率 <b id="lossv">15</b>%<br><input type="range" id="loss" min="0" max="50" value="15"></label>
+      <label>スピード <b id="spdv">1.5</b>倍<br><input type="range" id="spd" min="0.5" max="4" step="0.5" value="1.5"></label>
+      <button class="btn" id="go">▶ 送信する</button>
+      <button class="btn sub" id="stop">リセット</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <span class="note">実験の条件をワンタッチで：</span>
+      <button class="btn sub sm" data-p="none,0">約束なし・0%</button>
+      <button class="btn sub sm" data-p="none,30">約束なし・30%</button>
+      <button class="btn sub sm" data-p="tcp,0">TCP・0%</button>
+      <button class="btn sub sm" data-p="tcp,30">TCP・30%</button>
+    </div>
+    <p class="note" id="modeNote"></p>
+  </div>
+
+  <div class="card">
+    <svg id="net" viewBox="0 0 900 370"></svg>
+    <div id="stats" style="margin-top:4px"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Webサーバ（203.0.113.122）が送るパケット</h3>
+      <div id="sendBox"></div>
+    </div>
+    <div class="card">
+      <h3>クライアント（192.168.12.1）が受け取ったもの</h3>
+      <div id="recvBox"></div>
+      <h3 style="margin-top:8px">クライアントに表示されるメッセージ</h3>
+      <div class="result" id="result">―</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>実験の記録</h3>
+    <table class="rt" id="hist"><thead><tr><th>回</th><th>プロトコル</th><th>失われる確率</th><th>かかった時間</th><th>送った回数（再送ふくむ）</th><th>再送</th><th>結果</th></tr></thead><tbody></tbody></table>
+    <button class="btn sub sm" id="histClear" style="margin-top:6px">記録をクリア</button>
+  </div>
+
+  <div class="grid2">
+    <div class="card"><h3>通信ログ</h3><div class="log" id="log"></div></div>
+    <div class="card q">
+      <b>考えよう</b>
+      <ol>
+        <li><b>「約束なし」で30%にすると、どんなことが起きた？</b> 受け取った側は、欠けたことに気づけるだろうか。（ワークシートの3①）</li>
+        <li><b>「TCPの約束あり」では、約束なしに比べて何が増えた？</b>（ヘッダ・返事・もう一度送ること）（ワークシートの3②）</li>
+        </ol>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>このあと：トランプカードで、2つのプロトコルを人の手で体験しよう</h3>
+    <p class="note" style="margin:0 0 8px">シミュレータで見たTCPとIPの約束を、今度は自分たちの手で動かします。カードがパケットの役です。</p>
+    <div class="grid2">
+      <div class="q blue">
+        <b style="color:#2563eb">体験A　TCP：届いたか、正しいかを、ACKで返す（第3層）</b>
+        <ol style="margin:6px 0 0;padding-left:1.3em">
+          <li>送る側が、データをカード（パケット）に分け、<b>番号</b>を付けて渡す。</li>
+          <li>受け取った側は、番号とデータが<b>正しいか</b>を確かめる。</li>
+          <li>正しければ、その番号の<b>ACK（アック）</b>を返す。</li>
+          <li>ACKが返ってこない番号は、送る側が<b>もう一度送る（再送）</b>。</li>
+        </ol>
+      </div>
+      <div class="q" style="background:#ecfdf5;border-left-color:#059669">
+        <b style="color:#059669">体験B　IP：宛先のIPアドレスを見て、正しい相手に届ける（第2層）</b>
+        <ol style="margin:6px 0 0;padding-left:1.3em">
+          <li>カードには<b>送信先のIPアドレス</b>が書かれている。</li>
+          <li>受け取る人は、書かれたIPアドレスが<b>自分のものか</b>を確かめる。</li>
+          <li>自分のものでなければ、正しい相手へ<b>渡し直す</b>。ルータ役は、LANの出入り口でそれを行う。</li>
+          <li>最後に、<b>正しい相手に届いたか</b>を確認する。</li>
+        </ol>
+      </div>
+    </div>
+    <p class="note" style="margin:8px 0 0">体験Aでは「番号とACK」、体験Bでは「宛先のIPアドレス」に着目します。シミュレータで画面の中で起きていたことが、人の手でどう再現されるか、比べながら取り組もう。</p>
+  </div>
+</section>
+
+<footer>情報Ⅰ「情報通信ネットワーク」体験教材 ／ 1ファイルで動作（GitHub Pages などにそのまま置けます）</footer>
+</main>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+function txt(x,y,s,attrs,parent){const t=el('text',Object.assign({x,y,'text-anchor':'middle','dominant-baseline':'middle','font-size':14,fill:'#fff'},attrs||{}),parent);t.textContent=s;return t;}
+const rand=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+
+/* ---------- ① 回線交換とパケット交換 ---------- */
+(function(){
+const TM=[{n:'A',c:'#2563eb',tot:8},{n:'B',c:'#059669',tot:6},{n:'C',c:'#d97706',tot:4},{n:'D',c:'#7c3aed',tot:2}];
+const YS=[44,112,180,248],X0=120,XX=300,YY=600,X3=780,MY=146,RX=450,RY=[MY,MY];
+const NS='http://www.w3.org/2000/svg';
+function el(t,a,txt){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;return e;}
+function pts(i,r){return [[X0,YS[i]],[XX,RY[r]],[RX,RY[r]],[YY,RY[r]],[X3,YS[i]]];}
+function posAt(i,r,p){const P=pts(i,r);const L=[];let tot=0;for(let k=0;k<4;k++){const d=Math.hypot(P[k+1][0]-P[k][0],P[k+1][1]-P[k][1]);L.push(d);tot+=d;}
+  let d=p*tot,k=0;while(k<3&&d>L[k]){d-=L[k];k++;}const f=Math.min(1,d/L[k]);return [P[k][0]+(P[k+1][0]-P[k][0])*f,P[k][1]+(P[k+1][1]-P[k][1])*f];}
+function mk(host){
+  const svg=el('svg',{viewBox:'0 0 900 296'});
+  const lt=[],ld=[],lm=[[],[]],mlab=[];
+  TM.forEach((t,i)=>{
+    const a=el('line',{x1:X0,y1:YS[i],x2:XX,y2:MY,stroke:'#cbd5e1','stroke-width':5,'stroke-linecap':'round'});svg.appendChild(a);lt.push(a);
+    const b=el('line',{x1:YY,y1:MY,x2:X3,y2:YS[i],stroke:'#cbd5e1','stroke-width':5,'stroke-linecap':'round'});svg.appendChild(b);ld.push(b);
+  });
+  [[XX,RX],[RX,YY]].forEach(q=>svg.appendChild(el('line',{x1:q[0],y1:MY,x2:q[1],y2:MY,stroke:'#cbd5e1','stroke-width':24,'stroke-linecap':'butt'})));
+  [0,1].forEach(r=>{
+    [[XX,RY[r],RX,RY[r]],[RX,RY[r],YY,RY[r]]].forEach(q=>{const l=el('line',{x1:q[0],y1:q[1],x2:q[2],y2:q[3],stroke:'transparent','stroke-width':16,'stroke-linecap':'butt'});svg.appendChild(l);lm[r].push(l);});
+    
+    const ml=el('text',{x:RX+34,y:r===0?MY-20:MY+34,'font-size':15,'font-weight':'bold',fill:'#b91c1c'},'');svg.appendChild(ml);mlab.push(ml);
+  });
+  svg.appendChild(el('circle',{cx:RX,cy:MY,r:26,fill:'#64748b'}));
+  svg.appendChild(el('text',{x:RX,y:MY+5,'text-anchor':'middle','font-size':13,fill:'#fff'},'ルータ'));
+  [XX,YY].forEach(x=>{svg.appendChild(el('circle',{cx:x,cy:MY,r:30,fill:'#1e3a8a'}));svg.appendChild(el('text',{x:x,y:MY+5,'text-anchor':'middle','font-size':14,fill:'#fff'},'交換機'));});
+  const bad=[];
+  TM.forEach((t,i)=>{
+    svg.appendChild(el('rect',{x:20,y:YS[i]-20,width:100,height:40,rx:8,fill:'#fff',stroke:t.c,'stroke-width':3}));
+    svg.appendChild(el('text',{x:70,y:YS[i]+6,'text-anchor':'middle','font-size':18,'font-weight':'bold',fill:t.c},'端末'+t.n));
+    svg.appendChild(el('rect',{x:X3,y:YS[i]-20,width:100,height:40,rx:8,fill:'#fff',stroke:t.c,'stroke-width':3}));
+    svg.appendChild(el('text',{x:X3+50,y:YS[i]+6,'text-anchor':'middle','font-size':18,'font-weight':'bold',fill:t.c},'宛先'+t.n));
+    const bg=el('text',{x:70,y:YS[i]-26,'text-anchor':'middle','font-size':14,'font-weight':'bold',fill:'#b91c1c'},'');svg.appendChild(bg);bad.push(bg);
+  });
+  const lay=el('g',{});svg.appendChild(lay);
+  host.innerHTML='';host.appendChild(svg);
+  return {svg,lt,ld,lm,mlab,bad,lay};
+}
+function tbl(tb){tb.innerHTML='<tr><th>端末</th><th>データ量</th><th>進み</th><th>状態</th><th>完了</th></tr>'+TM.map((t,i)=>`<tr><td><span class="kc" style="background:${t.c}"></span>${t.n}</td><td>${t.tot}</td><td><div class="bar"><i id="${tb.id}b${i}" style="width:0;background:${t.c}"></i></div></td><td id="${tb.id}s${i}">待機</td><td id="${tb.id}f${i}">-</td></tr>`).join('');}
+let simC,simP,timer=null,tickMs=900,pk=[];
+const V={C:null,P:null};
+function fresh(mode){return {mode,t:0,terms:TM.map(t=>({tot:t.tot,sent:0,got:0,silenceLeft:0,didSil:false,finish:null,setup:0,line:-1,st:'待機'})),owner:[null,null],rr:0,wasted:0,done:false};}
+function spawn(sim,i,idx,r){const V1=sim.mode==='C'?V.C:V.P;const g=el('g',{});g.appendChild(el('rect',{x:-15,y:-11,width:30,height:22,rx:5,fill:TM[i].c,stroke:'#fff','stroke-width':2}));g.appendChild(el('text',{x:0,y:5,'text-anchor':'middle','font-size':13,'font-weight':'bold',fill:'#fff'},TM[i].n+idx));V1.lay.appendChild(g);pk.push({g,i,r,t0:performance.now(),dur:tickMs*2.6,term:sim.terms[i]});}
+const SIL=()=>document.getElementById('csSil').checked;
+function step(sim){
+  const T=sim.terms;
+  if(sim.mode==='C'){
+    for(let r=0;r<1;r++){
+      if(sim.owner[r]==null){const k=T.findIndex((x,i)=>x.sent<x.tot&&sim.owner[0]!==i&&sim.owner[1]!==i);if(k>=0){sim.owner[r]=k;T[k].setup=1;T[k].line=r;}}
+    }
+    T.forEach((x,i)=>{if(x.sent<x.tot&&sim.owner[0]!==i&&sim.owner[1]!==i)x.st='話し中（待機）';});
+    for(let r=0;r<1;r++){const k=sim.owner[r];if(k==null)continue;const x=T[k];
+      if(x.setup>0){x.setup--;x.st='回線を接続中';sim.wasted++;}
+      else if(x.silenceLeft>0){x.silenceLeft--;x.st='無言（回線は占有中）';sim.wasted++;}
+      else{x.sent++;x.st='通信中（回線を占有）';spawn(sim,k,x.sent,r);
+        if(SIL()&&!x.didSil&&x.sent===Math.ceil(x.tot/2)&&x.sent<x.tot){x.didSil=true;x.silenceLeft=2;}
+        if(x.sent===x.tot){x.finish=sim.t+1;sim.owner[r]=null;}}}
+  }else{
+    T.forEach(x=>{x.skip=x.silenceLeft>0;if(x.silenceLeft>0)x.silenceLeft--;});
+    T.forEach(x=>{if(x.sent<x.tot)x.st=x.skip?'無言（他の端末が使用）':'通信中（順番に流す）';});
+    let used=0,start=sim.rr,last=-1;
+    for(let n=0;n<4&&used<1;n++){const k=(start+n)%4;const x=T[k];if(x.sent<x.tot&&!x.skip){x.sent++;spawn(sim,k,x.sent,used);used++;last=k;
+      if(SIL()&&!x.didSil&&x.sent===Math.ceil(x.tot/2)&&x.sent<x.tot){x.didSil=true;x.silenceLeft=2;}
+      if(x.sent===x.tot)x.finish=sim.t+1;}}
+    if(last>=0)sim.rr=(last+1)%4;
+    sim.wasted+=1-used;
+  }
+  sim.t++;
+  if(T.every(x=>x.finish!=null))sim.done=true;
+}
+function render(sim,id,stId){
+  const V1=sim.mode==='C'?V.C:V.P;
+  sim.terms.forEach((x,i)=>{
+    const fin=x.finish!=null&&x.got>=x.tot;
+    const b=document.getElementById(id+'b'+i);if(b)b.style.width=(x.got/x.tot*100)+'%';
+    const s=document.getElementById(id+'s'+i);if(s)s.textContent=fin?'完了':x.st;
+    const f=document.getElementById(id+'f'+i);if(f)f.textContent=fin?x.finish+'秒':'-';
+    V1.bad[i].textContent=(sim.mode==='C'&&x.sent<x.tot&&sim.owner[0]!==i&&sim.owner[1]!==i)?'話し中':'';
+  });
+  TM.forEach((t,i)=>{const on=sim.mode==='C'&&(sim.owner[0]===i||sim.owner[1]===i);V1.lt[i].setAttribute('stroke',on?t.c:'#cbd5e1');V1.ld[i].setAttribute('stroke',on?t.c:'#cbd5e1');V1.lt[i].setAttribute('stroke-width',on?10:5);V1.ld[i].setAttribute('stroke-width',on?10:5);});
+  if(sim.mode==='C'){for(let r=0;r<1;r++){const o=sim.owner[r];V1.lm[r].forEach(l=>l.setAttribute('stroke',o!=null?TM[o].c:'transparent'));V1.mlab[r].textContent=o!=null?'端末'+TM[o].n+'が占有中':'';}}
+  const allgot=sim.terms.every(x=>x.got>=x.tot);
+  document.getElementById(stId).textContent=sim.t===0?'「送る」ボタンを押そう':(allgot?`全部の端末の通信が完了：${sim.terms.reduce((m,x)=>Math.max(m,x.finish||0),0)}秒`:`経過 ${sim.t}秒`+(sim.mode==='C'?`　／　回線を占有しているのに、データを流していない時間：${sim.wasted}秒分`:`　／　回線が空いていた時間：${sim.wasted}秒分`));
+}
+function frame(){
+  const now=performance.now();
+  pk=pk.filter(o=>{const p=(now-o.t0)/o.dur;if(p>=1){o.g.remove();o.term.got++;return false;}const [x,y]=posAt(o.i,o.r,Math.max(0,p));o.g.setAttribute('transform',`translate(${x},${y})`);return true;});
+  if(simC&&simC.t>0)render(simC,'tbC','stC');if(simP&&simP.t>0)render(simP,'tbP','stP');
+  if(simC&&simP&&simC.done&&simP.done&&pk.length===0&&!simC.shown){simC.shown=true;compare();}
+  requestAnimationFrame(frame);
+}
+function compare(){
+  document.getElementById('cmpCard').style.display='block';
+  const fc=simC.terms.map(x=>x.finish),fp=simP.terms.map(x=>x.finish);
+  const avg=a=>(a.reduce((s,v)=>s+v,0)/a.length).toFixed(1);
+  document.getElementById('cmpTb').innerHTML='<tr><th>端末</th><th>データ量</th><th>回線交換方式</th><th>パケット交換方式</th></tr>'+TM.map((t,i)=>`<tr><td><span class="kc" style="background:${t.c}"></span>${t.n}</td><td>${t.tot}</td><td>${fc[i]}秒</td><td>${fp[i]}秒</td></tr>`).join('')+`<tr><th>平均</th><th></th><th>${avg(fc)}秒</th><th>${avg(fp)}秒</th></tr>`;
+  document.getElementById('cmpTx').innerHTML=`回線交換方式では、先につないだ端末が回線を占有している間、ほかの端末は<b>話し中で待つしかない</b>。パケット交換方式は、パケットに分けて1本の回線を共用するので、<b>4台がいっしょに進む</b>。短いデータの端末Dは、回線交換方式では<b>${fc[3]}秒</b>、パケット交換方式では<b>${fp[3]}秒</b>で終わった。<br>※回線の太さ（速さ）は、どちらの方式も同じ（1秒に1つ分）。違いは、「占有するか、パケットに分けて共用するか」だけ。`;
+}
+function reset(){clearInterval(timer);timer=null;pk.forEach(o=>o.g.remove());pk=[];
+  V.C=mk(document.getElementById('cvC'));V.P=mk(document.getElementById('cvP'));
+  tbl(document.getElementById('tbC'));tbl(document.getElementById('tbP'));
+  simC=fresh('C');simP=fresh('P');document.getElementById('stC').textContent='「送る」ボタンを押そう';document.getElementById('stP').textContent='「送る」ボタンを押そう';
+  document.getElementById('cmpCard').style.display='none';document.getElementById('csGo').disabled=false;}
+document.getElementById('csReset').onclick=reset;
+document.getElementById('csSil').onchange=reset;
+document.getElementById('csSpd').onchange=()=>{tickMs=900/parseFloat(document.getElementById('csSpd').value);if(timer){clearInterval(timer);timer=setInterval(tick,tickMs);}};
+function tick(){if(!simC.done)step(simC);if(!simP.done)step(simP);if(simC.done&&simP.done){clearInterval(timer);timer=null;}}
+document.getElementById('csGo').onclick=()=>{reset();tickMs=900/parseFloat(document.getElementById('csSpd').value);document.getElementById('csGo').disabled=true;tick();timer=setInterval(tick,tickMs);};
+tickMs=900/parseFloat(document.getElementById('csSpd').value);
+reset();frame();
+})();
+document.getElementById('wsBtn').onclick=function(){const t=document.getElementById('wsTbl');t.classList.toggle('show');this.textContent=t.classList.contains('show')?'答えをかくす':'答えを見る';};
+/* ---------- tabs ---------- */
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x===b));
+  document.querySelectorAll('section.tab').forEach(s=>s.classList.toggle('active',s.id===b.dataset.t));
+  if(b.dataset.t==='t1')playAuto();else flStop();
+});
+
+/* =====================================================
+   TAB 1 : 4 layers & headers (book model)
+   ===================================================== */
+const SRV_IP='203.0.113.122', CLI_IP='192.168.12.1';
+const LY=[
+ {n:'アプリケーション層',lv:'第4層',c:'#7c3aed',like:'何を',      key:'app'},
+ {n:'トランスポート層',  lv:'第3層',c:'#2563eb',like:'どれくらい',key:'tp'},
+ {n:'インターネット層',  lv:'第2層',c:'#059669',like:'どこからどこへ',key:'ip'},
+ {n:'ネットワークインタフェース層',lv:'第1層',c:'#d97706',like:'どのような方法で',key:'nic'}
+];
+function layerInfo(i){
+  const app=$('#selApp').value,tp=$('#selTp').value,med=$('#selMed').value;
+  if(i===0){const m={HTTP:['HTTP','Webページ（HTTP）：暗号化しない','Webページ（HTTP）'],HTTPS:['HTTPS','Webページ（HTTPS）：暗号化して送る','Webページ（HTTPS）'],SMTP:['SMTP','メールの送信（SMTP）','メール送信（SMTP）']}[app];
+    return {proto:m[0],val:m[1],short:m[2],hd:m[0]+'ヘッダ',proto2:m[0]};}
+  if(i===1){return tp==='TCP'
+    ?{proto:'TCP',val:'1番目のパケット（データ量 5バイト）',short:'1番目／5バイト',hd:'TCPヘッダ'}
+    :{proto:'UDP',val:'データ量 5バイト（番号の管理・再送はしない）',short:'5バイト',hd:'UDPヘッダ'};}
+  if(i===2){return {proto:'IP',val:`送信先IPアドレス ${CLI_IP}　／　送信元IPアドレス ${SRV_IP}`,short:`${SRV_IP}→${CLI_IP}`,hd:'IPヘッダ'};}
+  return med==='wired'
+    ?{proto:'イーサネット',val:'有線LAN（イーサネット）で送る',short:'有線LAN',hd:'イーサネットヘッダ'}
+    :{proto:'IEEE 802.11',val:'無線LAN（IEEE 802.11）で送る',short:'無線LAN',hd:'802.11ヘッダ'};
+}
+const toBin=ip=>ip.split('.').map(n=>(+n).toString(2).padStart(8,'0')).join('.');
+let enK=0,enRecv=false;
+function enRender(){
+  const body=$('#enBody');body.innerHTML='';
+  const curIdx=enRecv?(enK===4?-1:enK):enK-1;
+  LY.forEach((l,i)=>{const info=layerInfo(i);const tr=document.createElement('tr');tr.id='enRow'+i;
+    const on=i<enK;if(!on)tr.classList.add('off');if(i===curIdx)tr.classList.add('cur');
+    const star=i===1?'<br><small style="color:#2563eb">★今日の体験：シミュレータ③、トランプ実習の体験A</small>':i===2?'<br><small style="color:#059669">★今日の体験：トランプ実習の体験B</small>':'';
+    const bin=(i===2&&on)?`<div style="font-family:Consolas,monospace;font-size:.78rem;color:#374151;margin-top:4px">送信先 ${toBin(CLI_IP)}<br>送信元 ${toBin(SRV_IP)}<br><span style="font-family:inherit;color:#6b7280">（IPv4のIPアドレスは32ビット。コンピュータは0と1で扱う）</span></div>`:'';
+    tr.innerHTML=`<td class="nm" style="border-left-color:${l.c};color:${l.c}">${l.n}<br><small style="color:#6b7280;font-weight:normal">${l.lv}／${info.proto}</small>${star}</td>
+      <td>${l.like}</td><td class="val">${on?esc(info.val)+bin:'（ヘッダはまだ付いていない）'}</td>`;
+    body.appendChild(tr);});
+  const s=$('#enStrip');s.innerHTML='';
+  for(let i=enK-1;i>=0;i--){const d=document.createElement('div');d.style.background=LY[i].c;d.innerHTML=`<b>${layerInfo(i).hd}</b><small>${esc(layerInfo(i).short)}</small>`;s.appendChild(d);}
+  const dd=document.createElement('div');dd.className='data';dd.innerHTML='<b>データ</b><small>HTML</small>';s.appendChild(dd);
+  if(enK===4){const t=document.createElement('div');t.className='trl';t.innerHTML='<b>トレーラ</b><small>エラーチェック用</small>';s.appendChild(t);}
+  let t,ph;
+  if(!enRecv){ph='送信側（Webサーバ）：上の層から順にヘッダを付ける';
+    if(enK===0)t='送りたいデータ（HTML）。これから、第4層から順にヘッダが付きます。伝票を貼っていくイメージです。';
+    else if(enK<4)t=`${LY[enK-1].n}：伝票の「${LY[enK-1].like}」にあたる情報を、ヘッダとして付ける。`+(enK===2?'<br>TCPは、ここで「何番目のパケットか」を書く。今日はシミュレータ③と、トランプ実習の体験Aで体験する。':enK===3?'<br>IPは、ここで「宛先のIPアドレス」と「送信元のIPアドレス」を書く。今日はトランプ実習の体験Bで、宛先のIPアドレスに着目する。':'');
+    else t='ネットワークインタフェース層：ヘッダに加えて、データのエラーをチェックするための<b>トレーラ</b>も付ける。<br>ここまでの全体を0と1のビット列にして、電気信号や光信号に変換して送り出す。';}
+  else{ph='受信側（クライアント）：下の層から順にヘッダを読んで外す';
+    if(enK===4)t='受信側に届いた。電気信号や光信号を0と1のビット列に戻し、<b>トレーラ</b>でデータにエラーがないかを確認します。';
+    else if(enK===0)t='すべてのヘッダが外れて、Webブラウザ（アプリケーション）が元のデータ（HTML）を受け取った！';
+    else t=`${LY[enK].n}：ヘッダの情報を読んで、それに応じた処理をしたら、ヘッダを取り除いて上の層へ渡す。`;}
+  $('#enPhase').textContent=ph;$('#enText').innerHTML=t;
+  if(typeof flRender==='function')flRender();
+  if(typeof hdRender==='function')hdRender(enRecv?(enK===4?3:enK===0?-1:enK-1):enK-1);
+}
+function changed(idx,msg){enRender();restartAuto();const r=$('#enRow'+idx);r.classList.remove('flash');void r.offsetWidth;r.classList.add('flash');$('#enChg').textContent=msg;}
+$('#selApp').onchange=()=>changed(0,'変わったのは第4層（アプリケーション層）のヘッダだけ。ほかの層はそのままです。');
+$('#selTp').onchange=()=>changed(1,'変わったのは第3層（トランスポート層）のヘッダだけ。ほかの層はそのままです。');
+$('#selMed').onchange=()=>changed(3,'変わったのは第1層（ネットワークインタフェース層）のヘッダだけ。上のアプリケーション（Webブラウザなど）は、そのまま使えます。');
+
+/* ---------- データの流れアニメーション ---------- */
+const FL=$('#flow');let flBuilt=false,prevK=0,prevRecv=false,autoT=null;
+const rowY=r=>46+r*76+42;
+function flBuild(){
+  FL.innerHTML='<div class="side" style="left:2%" id="flS">送信側：Webサーバ<br><small style="font-weight:normal">'+SRV_IP+'</small></div><div class="side" style="left:66%" id="flR">受信側：クライアント<br><small style="font-weight:normal">'+CLI_IP+'</small></div>';
+  [[2,'s'],[66,'r']].forEach(([x,sd])=>LY.forEach((l,i)=>{const d=document.createElement('div');d.className='ly';d.id='fl'+sd+i;d.style.left=x+'%';d.style.top=(46+(3-i)*76)+'px';d.style.borderColor=l.c;d.innerHTML=`<b style="color:${l.c}">${l.n}</b><small></small>`;FL.appendChild(d);}));
+  [0,1,3].forEach(i=>['s','r'].forEach(sd=>{const e=FL.querySelector('#fl'+sd+i);e.classList.add('pick');e.title='クリックでプロトコルを切りかえ';e.onclick=()=>cyc(['#selApp','#selTp',null,'#selMed'][i]);}));
+  const w=document.createElement('div');w.className='wire';w.style.top=(rowY(3)-3)+'px';FL.appendChild(w);
+  const wl=document.createElement('div');wl.className='wirelb';wl.style.top=(rowY(3)+8)+'px';wl.textContent='ケーブルや電波（0と1の信号）';FL.appendChild(wl);
+  const pk=document.createElement('div');pk.className='pkt';pk.id='flPkt';FL.appendChild(pk);
+  flBuilt=true;
+}
+/* LY の並びは [アプリ(第4), トランスポート(第3), インターネット(第2), NIC(第1)] を i=0..3 とする。表示は上から i=0 */
+
+function hdRender(curIdx){
+  const a=layerInfo(0),t=layerInfo(1),med=$('#selMed').value;
+  const brk=(i,rs,sub)=>`<td class="br" rowspan="${rs}" style="border-left-color:${LY[i].c};color:${LY[i].c}">${LY[i].n}<br><small>（${sub}）</small></td>`;
+  const wired=`<span class="${med==='wired'?'circ':''}">有線LAN</span>・<span class="${med==='wifi'?'circ':''}">無線LAN</span>`;
+  const c=i=>curIdx===i?' class="cur"':'';
+  $('#hdTbl').innerHTML=
+   `<tr${c(0)}><td class="k">アプリケーション</td><td>${esc(a.short)}</td>${brk(0,1,'何を')}</tr>`+
+   `<tr${c(1)}><td class="k">順番とデータ量</td><td>${$('#selTp').value==='TCP'?'1番目のパケット（5バイト）':'データ量 5バイト（番号なし）'}</td>${brk(1,1,'どれくらい')}</tr>`+
+   `<tr${c(2)}><td class="k">送信先IPアドレス</td><td>${CLI_IP}</td>${brk(2,2,'どこからどこへ')}</tr>`+
+   `<tr${c(2)}><td class="k">送信元IPアドレス</td><td>${SRV_IP}</td></tr>`+
+   `<tr${c(3)}><td class="k">送信媒体</td><td>${wired}</td>${brk(3,1,'どのような方法で')}</tr>`;
+}
+function flRender(){
+  if(!flBuilt)flBuild();
+  LY.forEach((l,i)=>['s','r'].forEach(sd=>{const el=$('#fl'+sd+i);el.style.top=(46+i*76)+'px';el.querySelector('small').textContent='（'+layerInfo(i).proto+'）'+([0,1,3].includes(i)?' ▼':'');el.querySelector('b').style.fontSize='.74rem';el.classList.remove('hot');}));
+  const row=Math.max(enK-1,0);
+  const rrow=enRecv?(enK===4?3:enK===0?0:enK-1):row;
+  const x=enRecv?83:18;
+  const pk=$('#flPkt');
+  pk.style.left=x+'%';pk.style.top=rowY(rrow)+'px';
+  const hot=$('#fl'+(enRecv?'r':'s')+rrow);if(hot)hot.classList.add('hot');
+  /* パケットの中身 */
+  const prevCount=pk.querySelectorAll('div:not(.data):not(.trl)').length;
+  pk.innerHTML='';
+  for(let i=enK-1;i>=0;i--){const d=document.createElement('div');d.style.background=LY[i].c;d.innerHTML=`<span>${esc(layerInfo(i).proto)}</span><span style="font-weight:normal;font-size:.58rem">ヘッダ</span>`;
+    if(!enRecv&&i===enK-1&&enK>prevK)d.className='new';pk.appendChild(d);}
+  const dd=document.createElement('div');dd.className='data';dd.innerHTML='<span>データ</span><span style="font-weight:normal;font-size:.58rem">HTML</span>';pk.appendChild(dd);
+  if(enK===4){const t=document.createElement('div');t.className='trl';t.innerHTML='<span>トレーラ</span>';pk.appendChild(t);}
+  /* ヘッダが外れる演出 */
+  if(enRecv&&prevRecv&&enK<prevK){const i=enK;const g=document.createElement('div');g.className='ghost';g.style.background=LY[i].c;g.style.left='83%';g.style.top=rowY(rrow)+'px';g.textContent=layerInfo(i).hd+'を外す';FL.appendChild(g);setTimeout(()=>g.remove(),1400);}
+  prevK=enK;prevRecv=enRecv;
+}
+function flStop(){if(autoT){clearInterval(autoT);autoT=null;}$('#enAuto').textContent='▶ 最初から流す';}
+function stepEn(){if(!enRecv){if(enK<4)enK++;else enRecv=true;}else if(enK>0)enK--;enRender();if(enRecv&&enK===0)flStop();}
+function playAuto(){flStop();enK=0;enRecv=false;prevK=0;prevRecv=false;enRender();$('#enAuto').textContent='■ 止める';autoT=setInterval(stepEn,1900);}
+function restartAuto(){playAuto();}
+$('#enAuto').onclick=()=>{if(autoT)flStop();else playAuto();};
+function cyc(id){const sel=$(id);sel.selectedIndex=(sel.selectedIndex+1)%sel.options.length;sel.onchange();}
+enRender();
+
+/* =====================================================
+   TAB 2 : packet splitting / TCP vs UDP
+   ===================================================== */
+const N={PC1:{x:62,y:185,label:'Webサーバ',ip:SRV_IP,icon:'🗄'},R1:{x:230,y:185,label:'ルータA'},R2:{x:445,y:70,label:'ルータB'},
+  R3:{x:445,y:185,label:'ルータC'},R4:{x:445,y:300,label:'ルータD'},R5:{x:660,y:185,label:'ルータE'},PC2:{x:836,y:185,label:'クライアント',ip:CLI_IP,icon:'🖥'}};
+const LINKS=[['PC1','R1'],['R1','R2'],['R1','R3'],['R1','R4'],['R2','R5'],['R3','R5'],['R4','R5'],['R2','R3'],['R3','R4'],['R5','PC2']];
+const ROUTES=[['PC1','R1','R2','R5','PC2'],['PC1','R1','R3','R5','PC2'],['PC1','R1','R4','R5','PC2'],
+  ['PC1','R1','R2','R3','R5','PC2'],['PC1','R1','R4','R3','R5','PC2'],['PC1','R1','R3','R2','R5','PC2'],['PC1','R1','R3','R4','R5','PC2']];
+const net=$('#net');
+(function drawNet(){
+  LINKS.forEach(([a,b])=>el('line',{x1:N[a].x,y1:N[a].y,x2:N[b].x,y2:N[b].y,stroke:'#cbd5e1','stroke-width':7,'stroke-linecap':'round'},net));
+  for(const k in N){const n=N[k];
+    if(k.startsWith('PC')){el('rect',{x:n.x-52,y:n.y-28,width:104,height:56,rx:8,fill:'#1e3a8a'},net);txt(n.x,n.y-6,n.icon+' '+n.label,{'font-size':13},net);txt(n.x,n.y+13,n.ip,{'font-size':11},net);}
+    else{el('circle',{cx:n.x,cy:n.y,r:25,fill:'#0f766e'},net);txt(n.x,n.y,'⇄',{'font-size':20},net);txt(n.x,n.y+40,n.label,{fill:'#0f766e','font-size':13,'font-weight':'bold'},net);}
+  }
+  txt(62,250,'サーバ側',{fill:'#374151','font-size':13},net);txt(836,250,'クライアント側',{fill:'#374151','font-size':13},net);
+  txt(445,355,'インターネット（ルータの網）',{fill:'#6b7280','font-size':13},net);
+})();
+const layer=el('g',{},net);
+
+let S={gen:0}, flights=[], runNo=0;
+const spd=()=>+$('#spd').value;
+const TIMEOUT=9000;
+$('#loss').oninput=()=>$('#lossv').textContent=$('#loss').value;
+$('#spd').oninput=()=>$('#spdv').textContent=$('#spd').value;
+function modeNote(){ $('#modeNote').innerHTML=$('#mode').value==='tcp'
+  ? '<b>TCPの約束あり</b>：データをパケットに分割し、ヘッダに<b>番号</b>を付けて送ります。受信側は番号順に並べ直し、届いたら<b>ACK（アック：確認応答）</b>を返します。ACKは Acknowledgement（受け取ったよ、の返事）の略です。一定時間たってもACKが来ないパケットは<b>再送</b>します。データを確実に届けるための約束です。'
+  : '<b>約束なし</b>：パケットに分けて送るだけ。番号も確認も再送もありません。届いた順に並べて表示します。※再送を要求しない「UDP」というプロトコルも実際にあります（ライブ動画配信などで使われる）。';}
+$('#mode').onchange=modeNote; modeNote();
+function renderSplit(){const chars=Array.from($('#msg').value||'');const size=+$('#psize').value;const c=[];for(let i=0;i<chars.length;i+=size)c.push(chars.slice(i,i+size).join(''));
+  $('#splitView').innerHTML=c.map(x=>'<span class="sp">'+esc(x)+'</span>').join('')+'<span class="note"> ＝ '+c.length+'個のパケット</span>';}
+$('#msg').oninput=renderSplit;$('#psize').onchange=renderSplit;renderSplit();
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const [m,l]=b.dataset.p.split(',');$('#mode').value=m;$('#loss').value=l;$('#lossv').textContent=l;modeNote();$('#go').click();});
+
+function log(s,c){const d=document.createElement('div');if(c)d.className=c;const t=S.t0?((performance.now()-S.t0)/1000).toFixed(1):'0.0';d.textContent=`[${t}s] ${s}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function later(ms,fn){const g=S.gen;setTimeout(()=>{if(g===S.gen)fn();},ms/spd());}
+
+function makeFlight(kind,route,label,lose,color){
+  const pts=route.map(k=>N[k]);const segs=[];let tot=0;
+  for(let i=1;i<pts.length;i++){const l=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);segs.push(l);tot+=l;}
+  const f={kind,pts,segs,tot,d:0,speed:rand(220,380)*(kind==='ack'?1.25:1),lostAt:null,done:false,removed:false,route};
+  if(lose){const idx=2+Math.floor(Math.random()*(route.length-3));let c=0;for(let i=0;i<idx;i++)c+=segs[i];f.lostAt=c;f.lostNode=route[idx];}
+  const g=el('g',{transform:`translate(${pts[0].x},${pts[0].y})`},layer);
+  const w=Math.max(26,String(label).length*14+10);
+  if(kind==='ack'){el('rect',{x:-w/2,y:-10,width:w,height:20,rx:10,fill:'#059669'},g);txt(0,1,label,{'font-size':11},g);}
+  else{el('rect',{x:-w/2,y:-13,width:w,height:26,rx:6,fill:color||'#2563eb',stroke:'#fff','stroke-width':2},g);txt(0,1,label,{'font-size':13,'font-weight':'bold'},g);}
+  f.g=g;flights.push(f);return f;
+}
+function posAt(f){let d=f.d;for(let i=0;i<f.segs.length;i++){const a=f.pts[i],b=f.pts[i+1];if(d<=f.segs[i]){const t=d/f.segs[i];return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};}d-=f.segs[i];}const z=f.pts[f.pts.length-1];return{x:z.x,y:z.y};}
+let lastT=performance.now();
+function tick(now){const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
+  for(const f of flights){if(f.done)continue;f.d+=f.speed*dt*spd();
+    if(f.lostAt!=null&&f.d>=f.lostAt){f.d=f.lostAt;f.done=true;f.g.setAttribute('transform',`translate(${posAt(f).x},${posAt(f).y})`);onLost(f);continue;}
+    if(f.d>=f.tot){f.d=f.tot;f.done=true;f.g.remove();f.removed=true;onArrive(f);continue;}
+    const p=posAt(f);f.g.setAttribute('transform',`translate(${p.x},${p.y})`);}
+  flights=flights.filter(f=>!f.removed);requestAnimationFrame(tick);}
+requestAnimationFrame(tick);
+
+function resetT2(){S.gen++;S={gen:S.gen};flights.forEach(f=>f.g.remove());flights=[];$('#log').innerHTML='';$('#sendBox').innerHTML='';$('#recvBox').innerHTML='';$('#result').textContent='―';$('#result').className='result';$('#stats').innerHTML='';}
+$('#stop').onclick=resetT2;
+$('#histClear').onclick=()=>{runNo=0;$('#hist tbody').innerHTML='';};
+$('#go').onclick=()=>{
+  resetT2();
+  const chars=Array.from($('#msg').value||'こんにちは');const size=+$('#psize').value;const chunks=[];
+  for(let i=0;i<chars.length;i+=size)chunks.push(chars.slice(i,i+size).join(''));
+  if(chunks.length>40){alert('パケットが多すぎます。メッセージを短くするか、1パケットの文字数を増やしてください。');return;}
+  S.tcp=$('#mode').value==='tcp';S.loss=+$('#loss').value/100;S.lossPct=+$('#loss').value;S.t0=performance.now();
+  S.pk=chunks.map((d,i)=>({seq:i+1,data:d,acked:false,recv:false,sends:0,tok:0}));
+  S.arr=[];S.sent=0;S.lost=0;S.re=0;S.resolved=0;S.finished=false;S.total=chunks.length;
+  log(`メッセージを ${S.total} 個のパケットに分割しました（${S.tcp?'TCPの約束あり':'約束なし'}）`,'w');
+  renderSend();renderRecv();stats();
+  S.pk.forEach((p,i)=>later(i*450,()=>sendData(p,false)));
+};
+function sendData(p,isRe){
+  p.sends++;S.sent++;if(isRe)S.re++;
+  const lose=Math.random()<S.loss;
+  const f=makeFlight('data',pick(ROUTES),S.tcp?('#'+p.seq):p.data,lose,isRe?'#d97706':'#2563eb');f.pk=p;
+  log(`${S.tcp?'No.'+p.seq:'パケット'}「${p.data}」を${isRe?'再送':'送信'}（${f.route.slice(1,-1).map(k=>N[k].label.replace('ルータ','')).join('→')} の経路）`,isRe?'w':'');
+  if(S.tcp){const tok=++p.tok;later(TIMEOUT,()=>{if(!p.acked&&!S.finished&&p.tok===tok){log(`No.${p.seq} のACKが来ない → タイムアウトで再送`,'e');sendData(p,true);}});}
+  stats();renderSend();
+}
+function onLost(f){
+  const g=f.g;g.querySelector('rect').setAttribute('fill','#dc2626');txt(0,-24,'✖ 消失',{fill:'#dc2626','font-size':13,'font-weight':'bold'},g);
+  setTimeout(()=>{g.remove();f.removed=true;},1100);
+  if(f.kind!=='data'||!S.pk)return;
+  S.lost++;log(`${S.tcp?'No.'+f.pk.seq:'パケット「'+f.pk.data+'」'} が${N[f.lostNode].label}で失われた（混雑などで捨てられた）`,'e');
+  if(!S.tcp){S.resolved++;checkDone();}stats();
+}
+function onArrive(f){
+  if(!S.pk)return;const p=f.pk;
+  if(f.kind==='ack'){S.ackN=(S.ackN||0)+1;if(!p.acked){p.acked=true;log(`サーバ：ACK${p.seq} を受け取った（No.${p.seq} は届いた）`,'a');renderSend();}return;}
+  if(S.tcp){
+    if(p.recv)log(`クライアント：No.${p.seq} は受信済み（重複）→ 捨ててACKだけ返す`,'w');
+    else{p.recv=true;log(`クライアント：No.${p.seq}「${p.data}」を受信 → ACK${p.seq} を返す`,'a');}
+    const back=pick(ROUTES).slice().reverse();makeFlight('ack',back,'ACK'+p.seq,false).pk=p;
+  }else{p.recv=true;S.arr.push(p);S.resolved++;log(`クライアント：「${p.data}」を受信（${S.arr.length}番目に到着）`,'a');}
+  renderRecv();checkDone();
+}
+function addHist(res){runNo++;const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${runNo}</td><td>${S.tcp?'TCP':'約束なし'}</td><td>${S.lossPct}%</td><td>${S.time}秒</td><td>${S.sent}</td><td>${S.tcp?S.re:'―'}</td><td>${res}</td>`;
+  $('#hist tbody').appendChild(tr);}
+function checkDone(){
+  if(S.finished)return;const t=((performance.now()-S.t0)/1000).toFixed(1);
+  if(S.tcp&&S.pk.every(p=>p.recv)){S.finished=true;S.time=t;log(`すべてのパケットがそろった！番号順に並べて復元（${t}秒）`,'w');$('#result').className='result good';addHist('元どおりに復元');}
+  if(!S.tcp&&S.resolved>=S.total){S.finished=true;S.time=t;
+    const inOrder=S.arr.every((p,i)=>i===0||S.arr[i-1].seq<p.seq);const ok=S.lost===0&&inOrder;
+    const res=ok?'元どおり（たまたま）':`${S.lost>0?'欠けた '+S.lost+' 個':''}${S.lost>0&&!inOrder?'・':''}${!inOrder?'順番が入れかわり':''}`;
+    log(`送信終了（${t}秒）。${ok?'たまたま正しく届いた！':'メッセージがこわれている…（再送はしない）'}`,ok?'w':'e');$('#result').className='result '+(ok?'good':'bad');addHist(res);}
+  if(S.finished)stats();
+}
+function stats(){if(!S.pk)return;$('#stats').innerHTML=
+  `<span class="stat">パケット数：${S.total}</span><span class="stat">送った回数（再送ふくむ）：${S.sent}</span><span class="stat">失われた：${S.lost}</span>`+
+  (S.tcp?`<span class="stat">返事（ACK）：${S.ackN||0}</span><span class="stat">再送：${S.re}</span>`:`<span class="stat">ヘッダの番号：なし／返事（ACK）：なし</span>`)+(S.time?`<span class="stat">かかった時間：${S.time}秒</span>`:'');}
+function pkHtml(p,showSeq,cls,dataOverride){
+  const h=(showSeq?`No.${p.seq}/${S.total}<br>`:'')+`宛先 ${CLI_IP}<br>送信元 ${SRV_IP}`;
+  return `<span class="pk ${cls||''}"><span class="h">${h}</span><span class="d">${esc(dataOverride!=null?dataOverride:p.data)}</span></span>`;}
+function renderSend(){$('#sendBox').innerHTML=S.pk.map(p=>pkHtml(p,S.tcp,S.tcp&&p.acked?'ok':'')).join('')+
+  (S.tcp?'<div class="note">緑＝ACKが返ってきた（届いたことを確認できた）パケット</div>':'<div class="note">約束なしでは、ヘッダに番号がない。送りっぱなしで確認もしない</div>');}
+function renderRecv(){
+  if(S.tcp){$('#recvBox').innerHTML=S.pk.map(p=>p.recv?pkHtml(p,true,'ok'):pkHtml(p,true,'empty','？')).join('')+'<div class="note">番号の場所に入れていくので、届く順番がばらばらでも正しく並ぶ</div>';
+    $('#result').textContent=S.pk.map(p=>p.recv?p.data:'□'.repeat(Array.from(p.data).length)).join('');}
+  else{$('#recvBox').innerHTML=S.arr.map(p=>pkHtml(p,false,'ok')).join('')+'<div class="note">番号がないので、届いた順に並べるしかない</div>';
+    $('#result').textContent=S.arr.map(p=>p.data).join('')||'―';}
+}
+
+</script>
+</body>
+</html>
