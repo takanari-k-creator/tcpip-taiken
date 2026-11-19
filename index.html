@@ -188,13 +188,12 @@ footer{text-align:center;font-size:.8rem;color:var(--sub);padding:10px 0 24px}
 
   <div class="card">
     <h3>ワークシート2①：4つの層を、宅配便の伝票の項目と結びつけよう</h3>
-    <p class="note" style="margin:0 0 8px">「なにを・どのくらい・どこからどこへ・どのような方法で」は、それぞれどの層の決まり事だろう？ まず自分で考えてから、「答えを見る」を押そう。</p>
-    <table class="hd" id="wsTbl"><tr><th>宅配便の伝票の項目</th><th>プロトコルの層</th><th class="ans">宅配便に例えると（答え）</th></tr>
-      <tr><td>なにを</td><td>アプリケーション層</td><td class="ans">荷物の中身（品名）</td></tr>
-      <tr><td>どのくらい</td><td>トランスポート層</td><td class="ans">荷物の数・大きさ（個口数・重さ）</td></tr>
-      <tr><td>どこからどこへ</td><td>インターネット層</td><td class="ans">届け先と差出人の住所</td></tr>
-      <tr><td>どのような方法で</td><td>ネットワークインタフェース層</td><td class="ans">運び方（トラック・飛行機・船など）</td></tr></table>
-    <button class="btn sub sm" id="wsBtn" style="margin-top:6px">答えを見る</button>
+    <p class="note" style="margin:0 0 8px">「なにを・どのくらい・どこからどこへ・どのような方法で」は、それぞれどの層の決まり事だろう？ 下のシミュレータでヘッダの中身を確かめながら考えて、ワークシートに書こう。</p>
+    <table class="hd" id="wsTbl"><tr><th>プロトコルの層</th><th>宅配便の伝票の項目</th></tr>
+      <tr><td>アプリケーション層</td><td></td></tr>
+      <tr><td>トランスポート層</td><td></td></tr>
+      <tr><td>インターネット層</td><td></td></tr>
+      <tr><td>ネットワークインタフェース層</td><td></td></tr></table>
   </div>
 
   <div class="card">
@@ -470,7 +469,6 @@ document.getElementById('csGo').onclick=()=>{reset();tickMs=900/parseFloat(docum
 tickMs=900/parseFloat(document.getElementById('csSpd').value);
 reset();frame();
 })();
-document.getElementById('wsBtn').onclick=function(){const t=document.getElementById('wsTbl');t.classList.toggle('show');this.textContent=t.classList.contains('show')?'答えをかくす':'答えを見る';};
 /* ---------- tabs ---------- */
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x===b));
