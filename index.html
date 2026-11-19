@@ -180,7 +180,7 @@ footer{text-align:center;font-size:.8rem;color:var(--sub);padding:10px 0 24px}
       </div>
       <div class="q blue">
         <b>宅配便のたとえ</b><br>
-        荷物には伝票を貼ります。伝票には<b>何を</b>（品名）、<b>どれくらい</b>（個口数・重さ）、<b>どこからどこへ</b>（住所）、<b>どのような方法で</b>（輸送方法）が書かれています。<br>
+        荷物には伝票を貼ります。伝票には<b>どこからどこへ</b>（住所）、<b>何を</b>（品名）、<b>どのような方法で</b>（輸送方法）、<b>どれくらい</b>（個口数・重さ）が書かれています。<br>
         TCP/IPでは、この伝票にあたる<b>ヘッダ</b>が、データに階層ごとに付きます。
       </div>
     </div>
@@ -188,7 +188,7 @@ footer{text-align:center;font-size:.8rem;color:var(--sub);padding:10px 0 24px}
 
   <div class="card">
     <h3>ワークシート2①：4つの層を、宅配便の伝票の項目と結びつけよう</h3>
-    <p class="note" style="margin:0 0 8px">「なにを・どのくらい・どこからどこへ・どのような方法で」は、それぞれどの層の決まり事だろう？ 下のシミュレータでヘッダの中身を確かめながら考えて、ワークシートに書こう。</p>
+    <p class="note" style="margin:0 0 8px">「どこからどこへ・なにを・どのような方法で・どのくらい」は、それぞれどの層の決まり事だろう？ 下のシミュレータでヘッダの中身を確かめながら考えて、ワークシートに書こう。</p>
     <table class="hd" id="wsTbl"><tr><th>プロトコルの層</th><th>宅配便の伝票の項目</th></tr>
       <tr><td>アプリケーション層</td><td></td></tr>
       <tr><td>トランスポート層</td><td></td></tr>
@@ -198,7 +198,7 @@ footer{text-align:center;font-size:.8rem;color:var(--sub);padding:10px 0 24px}
 
   <div class="card">
     <h3>パケットのヘッダには、どんな情報が入っている？（教科書の図）</h3>
-    <p class="note" style="margin:0 0 8px">1つのパケットには、決まり事を表す情報が、層ごとに書かれています。右側の層の名前と、宅配便の伝票の項目（　）を対応させて見よう。下のシミュレータを動かすと、いま処理している層の行が黄色になります。</p>
+    <p class="note" style="margin:0 0 8px">1つのパケットには、決まり事を表す情報が、層ごとに書かれています。それぞれの層のヘッダに書かれている中身を見て、宅配便の伝票のどの項目にあたるか考えよう。下のシミュレータを動かすと、いま処理している層の行が黄色になります。</p>
     <table class="hd" id="hdTbl"></table>
   </div>
 
@@ -230,7 +230,7 @@ footer{text-align:center;font-size:.8rem;color:var(--sub);padding:10px 0 24px}
 
   <div class="card">
     <table class="ly">
-      <thead><tr><th>層</th><th>伝票でいうと</th><th>この層のヘッダに書かれていること</th></tr></thead>
+      <thead><tr><th>層</th><th>この層のヘッダに書かれていること</th></tr></thead>
       <tbody id="enBody"></tbody>
     </table>
     <div id="enChg" style="margin-top:8px;font-weight:bold;color:#b45309;min-height:1.6em"></div>
@@ -508,7 +508,7 @@ function enRender(){
     const star=i===1?'<br><small style="color:#2563eb">★今日の体験：シミュレータ③、トランプ実習の体験A</small>':i===2?'<br><small style="color:#059669">★今日の体験：トランプ実習の体験B</small>':'';
     const bin=(i===2&&on)?`<div style="font-family:Consolas,monospace;font-size:.78rem;color:#374151;margin-top:4px">送信先 ${toBin(CLI_IP)}<br>送信元 ${toBin(SRV_IP)}<br><span style="font-family:inherit;color:#6b7280">（IPv4のIPアドレスは32ビット。コンピュータは0と1で扱う）</span></div>`:'';
     tr.innerHTML=`<td class="nm" style="border-left-color:${l.c};color:${l.c}">${l.n}<br><small style="color:#6b7280;font-weight:normal">${l.lv}／${info.proto}</small>${star}</td>
-      <td>${l.like}</td><td class="val">${on?esc(info.val)+bin:'（ヘッダはまだ付いていない）'}</td>`;
+      <td class="val">${on?esc(info.val)+bin:'（ヘッダはまだ付いていない）'}</td>`;
     body.appendChild(tr);});
   const s=$('#enStrip');s.innerHTML='';
   for(let i=enK-1;i>=0;i--){const d=document.createElement('div');d.style.background=LY[i].c;d.innerHTML=`<b>${layerInfo(i).hd}</b><small>${esc(layerInfo(i).short)}</small>`;s.appendChild(d);}
@@ -517,7 +517,7 @@ function enRender(){
   let t,ph;
   if(!enRecv){ph='送信側（Webサーバ）：上の層から順にヘッダを付ける';
     if(enK===0)t='送りたいデータ（HTML）。これから、第4層から順にヘッダが付きます。伝票を貼っていくイメージです。';
-    else if(enK<4)t=`${LY[enK-1].n}：伝票の「${LY[enK-1].like}」にあたる情報を、ヘッダとして付ける。`+(enK===2?'<br>TCPは、ここで「何番目のパケットか」を書く。今日はシミュレータ③と、トランプ実習の体験Aで体験する。':enK===3?'<br>IPは、ここで「宛先のIPアドレス」と「送信元のIPアドレス」を書く。今日はトランプ実習の体験Bで、宛先のIPアドレスに着目する。':'');
+    else if(enK<4)t=`${LY[enK-1].n}：この層の情報を、ヘッダとして付ける。`+(enK===2?'<br>TCPは、ここで「何番目のパケットか」を書く。今日はシミュレータ③と、トランプ実習の体験Aで体験する。':enK===3?'<br>IPは、ここで「宛先のIPアドレス」と「送信元のIPアドレス」を書く。今日はトランプ実習の体験Bで、宛先のIPアドレスに着目する。':'');
     else t='ネットワークインタフェース層：ヘッダに加えて、データのエラーをチェックするための<b>トレーラ</b>も付ける。<br>ここまでの全体を0と1のビット列にして、電気信号や光信号に変換して送り出す。';}
   else{ph='受信側（クライアント）：下の層から順にヘッダを読んで外す';
     if(enK===4)t='受信側に届いた。電気信号や光信号を0と1のビット列に戻し、<b>トレーラ</b>でデータにエラーがないかを確認します。';
@@ -548,7 +548,7 @@ function flBuild(){
 
 function hdRender(curIdx){
   const a=layerInfo(0),t=layerInfo(1),med=$('#selMed').value;
-  const brk=(i,rs,sub)=>`<td class="br" rowspan="${rs}" style="border-left-color:${LY[i].c};color:${LY[i].c}">${LY[i].n}<br><small>（${sub}）</small></td>`;
+  const brk=(i,rs,sub)=>`<td class="br" rowspan="${rs}" style="border-left-color:${LY[i].c};color:${LY[i].c}">${LY[i].n}</td>`;   // 伝票の項目（sub）は生徒に考えさせるため表示しない
   const wired=`<span class="${med==='wired'?'circ':''}">有線LAN</span>・<span class="${med==='wifi'?'circ':''}">無線LAN</span>`;
   const c=i=>curIdx===i?' class="cur"':'';
   $('#hdTbl').innerHTML=
